@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLD Upgraded | SDE3-Level System Designs</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background Gradient Orbs -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="grid-overlay"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fa-solid fa-layer-group brand-icon"></i>
+            <span>LLD <span class="text-gradient">Upgraded</span></span>
+        </div>
+        <div class="nav-links">
+            <a href="#features" class="nav-link">Features</a>
+            <a href="#systems" class="nav-link">Systems</a>
+            <a href="https://github.com/utm-git/lld-upgraded" target="_blank" class="btn btn-outline">
+                <i class="fa-brands fa-github"></i> Star on GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero" id="home">
+        <div class="hero-content">
+            <div class="badge fade-in-up">
+                <span class="badge-dot"></span> SDE3/Staff Engineer Standard
+            </div>
+            <h1 class="hero-title fade-in-up delay-1">
+                Elevate your <br>
+                <span class="text-gradient">System Design</span> Skills
+            </h1>
+            <p class="hero-subtitle fade-in-up delay-2">
+                A definitive collection of 30+ Low Level Design (LLD) systems meticulously refactored from foundational SDE2 blueprints into robust, production-ready, SDE3-level architectures.
+            </p>
+            <div class="hero-cta fade-in-up delay-3">
+                <a href="#systems" class="btn btn-primary">
+                    Explore Systems <i class="fa-solid fa-arrow-down"></i>
+                </a>
+                <a href="https://github.com/utm-git/lld-upgraded/tree/main/solutions/java/src" target="_blank" class="btn btn-secondary">
+                    View the Source Code
+                </a>
+            </div>
+        </div>
+        
+        <!-- Code window mockup -->
+        <div class="code-window fade-in-up delay-4">
+            <div class="window-header">
+                <span class="dot hide-dot"></span>
+                <span class="dot minimize-dot"></span>
+                <span class="dot maximize-dot"></span>
+                <span class="window-title">parkinglot_upgraded.java</span>
+            </div>
+            <div class="window-body">
+                <pre><code><span class="keyword">public class</span> <span class="class-name">ParkingStrategy</span> {
+    <span class="keyword">private final</span> <span class="class-name">ReentrantReadWriteLock</span> lock = <span class="keyword">new</span> <span class="class-name">ReentrantReadWriteLock</span>();
+    
+    <span class="keyword">public</span> <span class="class-name">boolean</span> <span class="method">assignSpot</span>(<span class="class-name">Vehicle</span> vehicle) {
+        lock.writeLock().lock();
+        <span class="keyword">try</span> {
+            <span class="keyword">if</span> (!availableSpots.isEmpty()) {
+                <span class="comment">// CPU-level mutual exclusion</span>
+                <span class="class-name">Spot</span> spot = availableSpots.poll();
+                <span class="keyword">return</span> spot.compareAndSet(<span class="boolean">true</span>, <span class="boolean">false</span>);
+            }
+        } <span class="keyword">finally</span> {
+            lock.writeLock().unlock();
+        }
+        <span class="keyword">return</span> <span class="boolean">false</span>;
+    }
+}</code></pre>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="section-header reveal">
+            <h2>What Makes the <span class="text-gradient">Upgraded</span> Versions SDE3-Level?</h2>
+            <p>We eliminated God-classes, global locks, and race conditions, replacing them with enterprise-grade patterns.</p>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-card reveal delay-1">
+                <div class="feature-icon"><i class="fa-solid fa-lock"></i></div>
+                <h3>Advanced Concurrency</h3>
+                <p>Global <code>synchronized</code> blocks are replaced by <code>ReentrantLock</code>, <code>ReadWriteLock</code>, and <code>AtomicBoolean</code> CAS operations to ensure true scalability without deadlocks.</p>
+            </div>
+            <div class="feature-card reveal delay-2">
+                <div class="feature-icon"><i class="fa-solid fa-diagram-project"></i></div>
+                <h3>State Patterns & Guards</h3>
+                <p>Unchecked status setters are evolved into robust GoF State Pattern implementations (Idle → Ready → Dispense) with strict illegal-transition guards.</p>
+            </div>
+            <div class="feature-card reveal delay-3">
+                <div class="feature-icon"><i class="fa-solid fa-bolt"></i></div>
+                <h3>Async Pipelines</h3>
+                <p>Inline blocking calls are refactored into high-throughput <code>ExecutorService</code> async fire-and-forget pipelines for notifications and background tasks.</p>
+            </div>
+            <div class="feature-card reveal delay-1">
+                <div class="feature-icon"><i class="fa-solid fa-calculator"></i></div>
+                <h3>Financial Precision</h3>
+                <p>Flawed floating-point math (e.g., <code>double</code>/<code>float</code>) transformed into precise <code>BigDecimal</code> arithmetic using standard <code>HALF_UP</code> rounding rules.</p>
+            </div>
+            <div class="feature-card reveal delay-2">
+                <div class="feature-icon"><i class="fa-solid fa-share-nodes"></i></div>
+                <h3>Distributed Sagas</h3>
+                <p>Complex multi-step actions (like ATM withdrawals or Online Shopping checkouts) use the 2PC Saga pattern with rock-solid compensating transactions.</p>
+            </div>
+            <div class="feature-card reveal delay-3">
+                <div class="feature-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+                <h3>Fan-Out-On-Write Feeds</h3>
+                <p>O(N×M) pull-on-read social feeds are optimized using standard Fan-Out-On-Write architecture to generate O(1) pre-computed feeds for high-volume reads.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Systems Catalog -->
+    <section class="systems" id="systems">
+        <div class="section-header reveal">
+            <h2><span class="text-gradient">30+ Systems</span> Mastered</h2>
+            <p>From parking lots to distributed graph systems, organized by complexity.</p>
+        </div>
+        
+        <div class="systems-grid">
+            <!-- Batch 1 -->
+            <div class="system-batch reveal">
+                <div class="batch-header">
+                    <span class="batch-pill">Batch 1</span>
+                    <h3>Foundational Concurrency</h3>
+                </div>
+                <ul class="system-list">
+                    <li><i class="fa-solid fa-car"></i> Parking Lot <span>Strategy, Lock Allocation</span></li>
+                    <li><i class="fa-solid fa-money-bill-transfer"></i> Splitwise <span>Lexicographic lock ordering</span></li>
+                    <li><i class="fa-solid fa-wallet"></i> Digital Wallet <span>Two-account locking</span></li>
+                    <li><i class="fa-solid fa-plane"></i> Airline Management <span>Atomic seat reservation</span></li>
+                </ul>
+            </div>
+            <!-- Batch 2 -->
+            <div class="system-batch reveal delay-1">
+                <div class="batch-header">
+                    <span class="batch-pill">Batch 2</span>
+                    <h3>State & Event-Driven</h3>
+                </div>
+                <ul class="system-list">
+                    <li><i class="fa-solid fa-box"></i> Vending Machine <span>GoF State Pattern</span></li>
+                    <li><i class="fa-brands fa-stack-overflow"></i> Stack Overflow <span>Async observers</span></li>
+                    <li><i class="fa-solid fa-satellite-dish"></i> Pub/Sub System <span>BlockingQueue Isolation</span></li>
+                </ul>
+            </div>
+            <!-- Batch 3 -->
+            <div class="system-batch reveal delay-2">
+                <div class="batch-header">
+                    <span class="batch-pill">Batch 3</span>
+                    <h3>Strategy & Temporal Logic</h3>
+                </div>
+                <ul class="system-list">
+                    <li><i class="fa-solid fa-building"></i> Elevator System <span>Min-Heap SCAN</span></li>
+                    <li><i class="fa-solid fa-bed"></i> Hotel Management <span>Interval bounding</span></li>
+                    <li><i class="fa-solid fa-memory"></i> LRU Cache <span>Lock-striped segments</span></li>
+                </ul>
+            </div>
+            <!-- Batch 4 -->
+            <div class="system-batch reveal">
+                <div class="batch-header">
+                    <span class="batch-pill">Batch 4</span>
+                    <h3>Distributed Tx & Games</h3>
+                </div>
+                <ul class="system-list">
+                    <li><i class="fa-solid fa-book"></i> Library System <span>Atomic micro-locking</span></li>
+                    <li><i class="fa-solid fa-ticket"></i> Movie Booking <span>Temporal hold state</span></li>
+                    <li><i class="fa-solid fa-money-check-dollar"></i> ATM Machine <span>2PC Saga</span></li>
+                    <li><i class="fa-solid fa-utensils"></i> Restaurant <span>Async Grid</span></li>
+                    <li><i class="fa-solid fa-chess"></i> Chess Game <span>Raycast collisions</span></li>
+                </ul>
+            </div>
+            <!-- Batch 5 -->
+            <div class="system-batch reveal delay-1">
+                <div class="batch-header">
+                    <span class="batch-pill">Batch 5</span>
+                    <h3>Scale & Graph Systems</h3>
+                </div>
+                <ul class="system-list">
+                    <li><i class="fa-solid fa-motorcycle"></i> Food Delivery <span>CAS Dispatch</span></li>
+                    <li><i class="fa-solid fa-hashtag"></i> Social Networking <span>Fan-Out-On-Write</span></li>
+                    <li><i class="fa-solid fa-car-side"></i> Ride Sharing <span>Driver matching CAS</span></li>
+                    <li><i class="fa-solid fa-arrow-trend-up"></i> Stock Brokerage <span>Dual PriorityQueue</span></li>
+                    <li><i class="fa-solid fa-list-check"></i> Task Management <span>Audit Observer</span></li>
+                </ul>
+            </div>
+            <!-- Batch 6 -->
+            <div class="system-batch reveal delay-2">
+                <div class="batch-header">
+                    <span class="batch-pill">Batch 6</span>
+                    <h3>Advanced Concurrency</h3>
+                </div>
+                <ul class="system-list">
+                    <li><i class="fa-solid fa-baseball-bat-ball"></i> CricInfo <span>Lock-free scoring</span></li>
+                    <li><i class="fa-solid fa-graduation-cap"></i> Course Registration <span>Disjoint lock bounds</span></li>
+                    <li><i class="fa-solid fa-music"></i> Music Streaming <span>Asymmetric executors</span></li>
+                    <li><i class="fa-solid fa-cart-shopping"></i> Online Shopping <span>Inventory Saga</span></li>
+                    <li><i class="fa-solid fa-dice"></i> Snake & Ladder <span>O(1) Engine</span></li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <i class="fa-solid fa-layer-group"></i> LLD Upgraded
+            </div>
+            <p>Elevating backend engineering standards from basic implementations to production-grade distributed system architectures.</p>
+            <div class="footer-links">
+                <a href="https://github.com/utm-git/lld-upgraded" target="_blank"><i class="fa-brands fa-github"></i> Repository</a>
+                <span>&copy; 2026 Utkarsh</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
