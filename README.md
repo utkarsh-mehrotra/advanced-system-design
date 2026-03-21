@@ -64,8 +64,17 @@ A collection of **30+ Low Level Design (LLD) systems** in Java, each available i
 | Stock Brokerage | `onlinestockbrokeragesystem/` | `onlinestockbrokeragesystem_upgraded/` | Dual PriorityQueue Order Book (Max-Bid / Min-Ask heap matching) |
 | Task Management | `taskmanagementsystem/` | `taskmanagementsystem_upgraded/` | GoF State lifecycle guards, async `AuditObserver` history logging |
 
+### Batch 6 — Advanced Concurrency & Sagas
+| System | Original | Upgraded | Signature Upgrade |
+|--------|---------|----------|-------------------|
+| CricInfo | `cricinfo/` | `cricinfo_upgraded/` | `ConcurrentHashMap` + `AtomicInteger` lock-free scoring |
+| Course Registration | `courseregistrationsystem/` | `courseregistrationsystem_upgraded/` | Disjoint target `ReentrantLock`s for capacity bounds |
+| Music Streaming | `musicstreamingservice/` | `musicstreamingservice_upgraded/` | Asymmetric `ExecutorService` mimicking hardware playback |
+| Online Shopping | `onlineshopping/` | `onlineshopping_upgraded/` | Transactional **Saga** pattern (inventory fallback) |
+| Snake & Ladder | `snakeandladdergame/` | `snakeandladdergame_upgraded/` | O(1) graph navigation, `Callable<Player>` engines |
+
 ### Original-Only Systems (Not Yet Upgraded)
-`coffeevendingmachine` · `concertbookingsystem` · `courseregistrationsystem` · `cricinfo` · `linkedin` · `musicstreamingservice` · `onlineauctionsystem` · `onlineshopping` · `snakeandladdergame` · `tictactoe` · `trafficsignalsystem`
+`carrentalsystem` · `coffeevendingmachine` · `concertbookingsystem` · `linkedin` · `onlineauctionsystem` · `tictactoe` · `trafficsignalsystem`
 
 ---
 
