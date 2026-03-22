@@ -1,0 +1,31 @@
+package musicstreamingservice_sde2;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class User {
+    private final String id;
+    private final String username;
+    private final String password;
+    private final List<Playlist> playlists;
+
+    public User(String id, String username, String password) {
+        this.id = id;
+        this.username = username;
+        this.password = password;
+        this.playlists = new CopyOnWriteArrayList<>();
+    }
+
+    public void addPlaylist(Playlist playlist) {
+        playlists.add(playlist);
+    }
+
+    public void removePlaylist(Playlist playlist) {
+        playlists.remove(playlist);
+    }
+
+    public String getId() { return id; }
+    public String getUsername() { return username; }
+    public String getPassword() { return password; }
+    public List<Playlist> getPlaylists() { return playlists; }
+}
