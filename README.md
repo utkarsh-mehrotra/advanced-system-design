@@ -1,4 +1,4 @@
-# 🚀 LLD Upgraded — SDE3-Level Low Level Design Implementations
+# 🚀 Advanced System Design — SDE3-Level Low Level Design Implementations
 
 A collection of **30+ Low Level Design (LLD) systems** in Java, each available in two versions:
 
