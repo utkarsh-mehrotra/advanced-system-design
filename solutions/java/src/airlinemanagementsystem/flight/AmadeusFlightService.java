@@ -49,7 +49,7 @@ public class AmadeusFlightService implements FlightSearchService {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                return parseFlights(response.body());
+                return parseFlights(response.body(), source, destination, date);
             } else {
                 System.err.println("Amadeus API error: " + response.statusCode());
                 System.err.println("Body: " + response.body());
@@ -63,17 +63,14 @@ public class AmadeusFlightService implements FlightSearchService {
         return new ArrayList<>();
     }
 
-    private List<Flight> parseFlights(String jsonBody) {
+    private List<Flight> parseFlights(String jsonBody, String source, String destination, LocalDate date) {
         List<Flight> flights = new ArrayList<>();
         try {
             JsonObject root = gson.fromJson(jsonBody, JsonObject.class);
             if (root.has("data")) {
                 JsonArray data = root.getAsJsonArray("data");
                 for (JsonElement element : data) {
-                    // This is a simplification. Real Amadeus JSON is complex.
-                    // We just create a dummy flight object for each result found.
-                    // In a real app, you would parse 'itineraries', 'segments', etc.
-                    flights.add(new Flight("AMD" + System.nanoTime(), "Amadeus Flight", "Boeing 737", 100));
+                    flights.add(new Flight("AMD" + System.nanoTime(), source, destination, date.atStartOfDay(), date.atStartOfDay().plusHours(2)));
                 }
             }
         } catch (Exception e) {
