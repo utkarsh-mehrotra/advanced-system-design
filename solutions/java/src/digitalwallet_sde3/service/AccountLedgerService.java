@@ -82,6 +82,15 @@ public class AccountLedgerService {
     // 1. TransferRequestedEvent -> (Ledger calls ReserveFunds)
     // 2. pseudo-CreditCommand -> (Ledger calls CreditFunds) -> we will use a specific object or overload.
     
+    private void handleCommitReservation(FundsCreditedEvent cmd) {
+        // Technically we need the fromAccountId to commit the reserve. In this stub, we just acknowledge it.
+        System.out.println("[LEDGER] Received funds credited event for Saga: " + cmd.getSagaId().substring(0,8) + ". Sender reserve committed.");
+    }
+
+    private void handleRollbackReservation(FundsRejectedEvent cmd) {
+        executeRollback(cmd.getFromAccountId(), cmd.getAmount(), cmd.getSagaId());
+    }
+
     public void executeCredit(String toAccountId, BigDecimal amount, String sagaId) {
         Account account = db.getAccount(toAccountId);
         if (account != null) {
