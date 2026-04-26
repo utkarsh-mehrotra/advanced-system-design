@@ -1,10 +1,50 @@
-# Cricinfo - SDE3 Lock-Free & Event-Driven Implementation
+# 🏏 CricInfo (Live Cricket Score) System — SDE3 Upgraded
 
-This directory represents the highest-tier, Staff-level (SDE3) implementation of the Cricinfo system.
+## Overview
+A live cricket match tracking system modeling innings, overs, balls, and scorecards. The primary challenge is handling concurrent, high-frequency ball-by-ball score updates from multiple data feeds without losing score counts or triggering concurrency exceptions.
 
-## Architectural Characteristics
-- **Structure:** Heavily decoupled, bypassing traditional OOP boilerplate to focus exclusively on concurrency and event flow.
-- **Concurrency:** Lock-free algorithms, CPU-level atomic operations (Compare-And-Swap / `AtomicInteger`), and `ConcurrentHashMap` logic to completely eliminate Time-Of-Check-to-Time-Of-Use (TOCTOU) race conditions.
-- **Event-Driven:** Employs Publisher/Subscriber `EventBus` paradigms for asynchronous pipelines (e.g. auditing, hardware signals).
+## SDE3 Upgrades Applied
 
-*Note: This tier intentionally abstracts away standard enterprise OOP patterns to showcase extreme high-throughput, non-blocking design.*
+| Issue | Fix |
+|-------|-----|
+| `HashMap<String, Integer>` mutating under load | `ConcurrentHashMap` combined with `AtomicInteger` to ensure thread-safe score accumulation (`addAndGet()`). |
+| `ArrayList` throwing `ConcurrentModificationException` during iteration | `CopyOnWriteArrayList` implemented for Innings and Over arrays, guaranteeing safe reads while the match is mutating. |
+| Global Singletons (`ScorecardService.getInstance()`) | Removed Singletons; built an orchestrated `CricinfoFacade` utilizing Dependency Injection. |
+
+## Class Diagram
+
+```mermaid
+classDiagram
+    class CricinfoFacade {
+        -MatchService matchService
+        -ScorecardService scorecardService
+        +addRunsToScore(scorecardId, teamId, runs)
+    }
+    class MatchService {
+        <<interface>>
+        +updateMatchStatus(matchId, MatchStatus)
+    }
+    class ScorecardService {
+        <<interface>>
+        +updateScore(scorecardId, teamId, runsToAdd)
+    }
+    class ScorecardServiceImpl {
+        -ConcurrentHashMap~String, Scorecard~ scorecards
+    }
+    class Scorecard {
+        -ConcurrentHashMap~String, AtomicInteger~ teamScores
+        -CopyOnWriteArrayList~Innings~ innings
+        +incrementScore(teamId, runs)
+    }
+    
+    CricinfoFacade --> MatchService
+    CricinfoFacade --> ScorecardService
+    ScorecardService <|.. ScorecardServiceImpl
+    ScorecardServiceImpl "1" *-- "*" Scorecard
+```
+
+## Run
+```bash
+javac $(find cricinfo_upgraded -name "*.java")
+java cricinfo_upgraded.CricinfoDemoUpgraded
+```

@@ -1,46 +1,26 @@
 package onlineauctionsystem_sde3;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 public class AuctionItem {
     private final String itemId;
-    // Atomic reference holds immutable state class for thread-safe compare-and-swap
-    private final AtomicReference<BidState> bidState;
-    private final AtomicReference<AuctionState> status;
-
-    public static class BidState {
-        public final double amount;
-        public final String bidderId;
-        public BidState(double amount, String bidderId) {
-            this.amount = amount;
-            this.bidderId = bidderId;
-        }
-    }
+    private final double startingPrice;
+    private double currentHighestBid;
+    private String highestBidderId;
+    private boolean isActive;
 
     public AuctionItem(String itemId, double startingPrice) {
         this.itemId = itemId;
-        this.bidState = new AtomicReference<>(new BidState(startingPrice, null));
-        this.status = new AtomicReference<>(AuctionState.LIVE);
+        this.startingPrice = startingPrice;
+        this.currentHighestBid = startingPrice;
+        this.highestBidderId = null;
+        this.isActive = true;
     }
 
     public String getItemId() { return itemId; }
-    public AuctionState getStatus() { return status.get(); }
-    public BidState getCurrentBid() { return bidState.get(); }
+    public double getCurrentHighestBid() { return currentHighestBid; }
+    public String getHighestBidderId() { return highestBidderId; }
+    public boolean isActive() { return isActive; }
 
-    // Lock-free highly concurrent bid placement using CAS (Optimistic Locking)
-    public boolean placeBid(String bidderId, double amount) {
-        if (status.get() != AuctionState.LIVE) return false;
-
-        while (true) {
-            BidState current = bidState.get();
-            if (amount <= current.amount) {
-                return false; // Bid too low
-            }
-            BidState next = new BidState(amount, bidderId);
-            if (bidState.compareAndSet(current, next)) {
-                return true; // Successfully swapped state!
-            }
-            // If compareAndSet fails, another thread updated bidState. The loop retries!
-        }
-    }
+    void setCurrentHighestBid(double currentHighestBid) { this.currentHighestBid = currentHighestBid; }
+    void setHighestBidderId(String highestBidderId) { this.highestBidderId = highestBidderId; }
+    void setActive(boolean active) { isActive = active; }
 }

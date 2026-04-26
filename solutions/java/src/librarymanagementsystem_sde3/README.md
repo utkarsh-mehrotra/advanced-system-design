@@ -1,10 +1,50 @@
-# Librarymanagementsystem - SDE3 Lock-Free & Event-Driven Implementation
+# 📚 Library Management System — SDE3 Upgraded
 
-This directory represents the highest-tier, Staff-level (SDE3) implementation of the Librarymanagementsystem system.
+## Overview
+A library catalog and lending system managing books, members, and borrow/return operations. The SDE3 upgrade replaces a global borrow lock with per-book `AtomicBoolean` micro-locks and switches catalog searches to run on a parallel stream.
 
-## Architectural Characteristics
-- **Structure:** Heavily decoupled, bypassing traditional OOP boilerplate to focus exclusively on concurrency and event flow.
-- **Concurrency:** Lock-free algorithms, CPU-level atomic operations (Compare-And-Swap / `AtomicInteger`), and `ConcurrentHashMap` logic to completely eliminate Time-Of-Check-to-Time-Of-Use (TOCTOU) race conditions.
-- **Event-Driven:** Employs Publisher/Subscriber `EventBus` paradigms for asynchronous pipelines (e.g. auditing, hardware signals).
+## SDE3 Upgrades Applied
 
-*Note: This tier intentionally abstracts away standard enterprise OOP patterns to showcase extreme high-throughput, non-blocking design.*
+| Issue | Fix |
+|-------|-----|
+| Global `synchronized(this)` on all borrow operations — no parallelism | Per-`Book` `AtomicBoolean isAvailable` with `compareAndSet` |
+| O(N) linear catalog search in request thread | `parallelStream().filter()` leverages all CPU cores |
+| Member borrow count unchecked | Explicit borrow limit enforced before CAS attempt |
+
+## Class Diagram
+
+```mermaid
+classDiagram
+    class Library {
+        -List~Book~ catalog
+        -Map~String,Member~ members
+        +searchByTitle(title) List~Book~
+        +searchByAuthor(author) List~Book~
+        +borrowBook(memberId, bookId) boolean
+        +returnBook(memberId, bookId)
+    }
+    class Book {
+        -String id
+        -String title
+        -String author
+        -AtomicBoolean isAvailable
+        +tryBorrow() boolean
+        +returnBook()
+    }
+    class Member {
+        -String id
+        -String name
+        -List~String~ borrowedBookIds
+        +canBorrow() boolean
+    }
+
+    Library "1" *-- "many" Book
+    Library "1" *-- "many" Member
+    Member ..> Book : borrows
+```
+
+## Run
+```bash
+javac $(find librarymanagementsystem_upgraded -name "*.java")
+java librarymanagementsystem_upgraded.LibraryManagementSystemDemoUpgraded
+```

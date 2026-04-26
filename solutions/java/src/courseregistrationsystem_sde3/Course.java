@@ -1,32 +1,55 @@
 package courseregistrationsystem_sde3;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Course {
-    private final String courseId;
-    private final AtomicInteger availableSeats;
+    private final String code;
+    private final String name;
+    private final String instructor;
+    private final int maxCapacity;
+    private final AtomicInteger enrolledStudents;
+    private final ReentrantLock courseLock;
 
-    public Course(String courseId, int totalCapacity) {
-        this.courseId = courseId;
-        this.availableSeats = new AtomicInteger(totalCapacity);
+    public Course(String code, String name, String instructor, int maxCapacity) {
+        this.code = code;
+        this.name = name;
+        this.instructor = instructor;
+        this.maxCapacity = maxCapacity;
+        this.enrolledStudents = new AtomicInteger(0);
+        this.courseLock = new ReentrantLock();
     }
 
-    public String getCourseId() { return courseId; }
-    public int getAvailableSeats() { return availableSeats.get(); }
-
-    public boolean enrollSeat() {
-        while (true) {
-            int current = availableSeats.get();
-            if (current <= 0) {
-                return false; // Full
-            }
-            if (availableSeats.compareAndSet(current, current - 1)) {
+    public boolean tryRegisterStudent() {
+        courseLock.lock();
+        try {
+            if (enrolledStudents.get() < maxCapacity) {
+                enrolledStudents.incrementAndGet();
                 return true;
             }
+            return false;
+        } finally {
+            courseLock.unlock();
         }
     }
-    
-    public void dropSeat() {
-        availableSeats.incrementAndGet();
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getInstructor() {
+        return instructor;
+    }
+
+    public int getMaxCapacity() {
+        return maxCapacity;
+    }
+
+    public int getEnrolledStudents() {
+        return enrolledStudents.get();
     }
 }

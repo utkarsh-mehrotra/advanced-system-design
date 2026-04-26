@@ -3,49 +3,51 @@ package carrentalsystem_sde3;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class RentalSystem {
     private final Map<String, Car> inventory = new ConcurrentHashMap<>();
     private final Map<String, Reservation> reservations = new ConcurrentHashMap<>();
-    
-    // ReadWriteLock allows multiple concurrent reads for inventory browsing
-    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final ReentrantLock lock = new ReentrantLock();
+    private final PricingStrategy pricingStrategy;
 
-    public RentalSystem() {
-        EventBus.getInstance().subscribe("PAYMENT_SUCCESS", this::handlePaymentSuccess);
+    public RentalSystem(PricingStrategy pricingStrategy) {
+        this.pricingStrategy = pricingStrategy;
     }
 
     public void addCar(Car car) {
         inventory.put(car.getLicensePlate(), car);
     }
 
-    public Optional<Reservation> initiateBooking(String customerId, String licensePlate) {
-        rwLock.writeLock().lock();
+    public Optional<Reservation> bookCar(Customer customer, String licensePlate, int days) {
+        lock.lock();
         try {
             Car car = inventory.get(licensePlate);
             if (car != null && car.isAvailable()) {
                 car.setAvailable(false);
-                Reservation res = new Reservation(customerId, licensePlate);
-                reservations.put(res.getId(), res);
-                
-                // Publish event to decouple payment processing
-                EventBus.getInstance().publish("BOOKING_INITIATED", res);
-                return Optional.of(res);
+                double cost = pricingStrategy.calculatePrice(car, days);
+                Reservation reservation = new Reservation(customer, car, days, cost);
+                reservations.put(reservation.getReservationId(), reservation);
+                return Optional.of(reservation);
             }
             return Optional.empty();
         } finally {
-            rwLock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
-    private void handlePaymentSuccess(Object eventPayload) {
-        if (eventPayload instanceof String) {
-            String resId = (String) eventPayload;
-            Reservation res = reservations.get(resId);
-            if (res != null && res.transitionState(State.PENDING, State.CONFIRMED)) {
-                System.out.println("RentalSystem: Reservation " + resId + " confirmed asynchronously via EventBus.");
+    public boolean returnCar(String reservationId) {
+        Reservation res = reservations.get(reservationId);
+        if (res != null) {
+            lock.lock();
+            try {
+                res.getCar().setAvailable(true);
+                reservations.remove(reservationId);
+                return true;
+            } finally {
+                lock.unlock();
             }
         }
+        return false;
     }
 }

@@ -1,10 +1,69 @@
-# Movieticketbookingsystem - SDE3 Lock-Free & Event-Driven Implementation
+# 🎬 Movie Ticket Booking System — SDE3 Upgraded
 
-This directory represents the highest-tier, Staff-level (SDE3) implementation of the Movieticketbookingsystem system.
+## Overview
+A cinema seat reservation system handling concurrent bookings across multiple shows. Introduces a `TEMPORARILY_HELD` intermediate seat state and per-show locking to eliminate the classic double-booking race.
 
-## Architectural Characteristics
-- **Structure:** Heavily decoupled, bypassing traditional OOP boilerplate to focus exclusively on concurrency and event flow.
-- **Concurrency:** Lock-free algorithms, CPU-level atomic operations (Compare-And-Swap / `AtomicInteger`), and `ConcurrentHashMap` logic to completely eliminate Time-Of-Check-to-Time-Of-Use (TOCTOU) race conditions.
-- **Event-Driven:** Employs Publisher/Subscriber `EventBus` paradigms for asynchronous pipelines (e.g. auditing, hardware signals).
+## SDE3 Upgrades Applied
 
-*Note: This tier intentionally abstracts away standard enterprise OOP patterns to showcase extreme high-throughput, non-blocking design.*
+| Issue | Fix |
+|-------|-----|
+| Global lock — all shows serialize on one monitor | Per-`Show` `ReentrantLock`; parallel bookings on different shows contend only on the same show |
+| AVAILABLE → BOOKED in two steps — TOCTOU window | Atomic AVAILABLE → TEMPORARILY_HELD → BOOKED three-phase commit inside lock |
+| `SeatStatus` mutated without holding any lock | `synchronized seat.tryHold()` and `seat.confirm()` |
+
+## Class Diagram
+
+```mermaid
+classDiagram
+    class BookingFacade {
+        -Map~String,Show~ shows
+        +bookSeats(userId, showId, seatIds) Booking
+        +cancelBooking(bookingId)
+    }
+    class Show {
+        -String id
+        -Movie movie
+        -Theater theater
+        -Map~String,Seat~ seats
+        -ReentrantLock showLock
+        +tryHoldSeats(seatIds) boolean
+        +confirmSeats(seatIds)
+        +releaseSeats(seatIds)
+    }
+    class Seat {
+        -String id
+        -SeatType type
+        -SeatStatus status
+        +tryHold() boolean
+        +confirm()
+        +release()
+    }
+    class SeatStatus {
+        <<enumeration>>
+        AVAILABLE
+        TEMPORARILY_HELD
+        BOOKED
+    }
+    class Booking {
+        -String id
+        -String userId
+        -List~Seat~ seats
+        -BookingStatus status
+    }
+    class Movie {
+        -String id
+        -String title
+    }
+
+    BookingFacade "1" *-- "many" Show
+    Show "1" *-- "many" Seat
+    Seat --> SeatStatus
+    BookingFacade "1" *-- "many" Booking
+    Show --> Movie
+```
+
+## Run
+```bash
+javac $(find movieticketbookingsystem_upgraded -name "*.java")
+java movieticketbookingsystem_upgraded.MovieTicketBookingDemoUpgraded
+```

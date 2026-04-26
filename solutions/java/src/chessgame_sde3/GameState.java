@@ -1,5 +1,9 @@
 package chessgame_sde3;
 
 public enum GameState {
-    ACTIVE, BLACK_WIN, WHITE_WIN, DRAW, STALEMATE
+    ACTIVE,
+    WHITE_WIN,
+    BLACK_WIN,
+    STALEMATE,
+    DRAW
 }

@@ -1,26 +1,23 @@
 package carrentalsystem_sde3;
 
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class Reservation {
-    private final String id;
-    private final String customerId;
-    private final String carLicensePlate;
-    private final AtomicReference<State> state;
+    private final String reservationId;
+    private final Customer customer;
+    private final Car car;
+    private final int days;
+    private final double totalCost;
 
-    public Reservation(String customerId, String carLicensePlate) {
-        this.id = UUID.randomUUID().toString();
-        this.customerId = customerId;
-        this.carLicensePlate = carLicensePlate;
-        this.state = new AtomicReference<>(State.PENDING);
+    public Reservation(Customer customer, Car car, int days, double totalCost) {
+        this.reservationId = UUID.randomUUID().toString();
+        this.customer = customer;
+        this.car = car;
+        this.days = days;
+        this.totalCost = totalCost;
     }
 
-    public boolean transitionState(State expected, State next) {
-        return state.compareAndSet(expected, next);
-    }
-
-    public State getState() { return state.get(); }
-    public String getId() { return id; }
-    public String getCarLicensePlate() { return carLicensePlate; }
+    public String getReservationId() { return reservationId; }
+    public Car getCar() { return car; }
+    public double getTotalCost() { return totalCost; }
 }

@@ -1,21 +1,23 @@
 package snakeandladdergame_sde3;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class Player {
-    private final String id;
-    private final AtomicInteger position;
+    private final String name;
+    private int position;
 
-    public Player(String id) {
-        this.id = id;
-        this.position = new AtomicInteger(0);
+    public Player(String name) {
+        this.name = name;
+        this.position = 0;
     }
 
-    public String getId() { return id; }
-    public int getPosition() { return position.get(); }
+    public String getName() {
+        return name;
+    }
 
-    public void updatePosition(int newPosition) {
-        this.position.set(newPosition);
-        EventBus.getInstance().publish("PLAYER_MOVED", id + ":" + newPosition);
+    public int getPosition() {
+        return position;
+    }
+
+    public void setPosition(int position) {
+        this.position = position;
     }
 }

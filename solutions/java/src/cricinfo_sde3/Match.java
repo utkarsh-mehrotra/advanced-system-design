@@ -1,26 +1,39 @@
 package cricinfo_sde3;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+
 public class Match {
-    private final String matchId;
-    private volatile int currentScore; // Volatile for ultra-fast lock-free reads
-    private volatile MatchState state;
+    private final String id;
+    private final String title;
+    private final String venue;
+    private final LocalDateTime startTime;
+    private final List<Team> teams;
+    private final AtomicReference<MatchStatus> status;
 
-    public Match(String matchId) {
-        this.matchId = matchId;
-        this.currentScore = 0;
-        this.state = MatchState.UPCOMING;
+    public Match(String id, String title, String venue, LocalDateTime startTime, List<Team> teams) {
+        this.id = id;
+        this.title = title;
+        this.venue = venue;
+        this.startTime = startTime;
+        this.teams = List.copyOf(teams);
+        this.status = new AtomicReference<>(MatchStatus.SCHEDULED); // Thread-safe status
     }
 
-    public String getMatchId() { return matchId; }
-    public int getCurrentScore() { return currentScore; }
-    public MatchState getState() { return state; }
-
-    // Package-private. Only ScoreController holds write locks
-    void incrementScore(int runs) {
-        this.currentScore += runs;
+    public String getId() {
+        return id;
     }
 
-    void setState(MatchState state) {
-        this.state = state;
+    public void setStatus(MatchStatus newStatus) {
+        this.status.set(newStatus);
+    }
+
+    public MatchStatus getStatus() {
+        return this.status.get();
+    }
+
+    public String getTitle() {
+        return title;
     }
 }

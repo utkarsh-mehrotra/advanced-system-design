@@ -1,35 +1,24 @@
 package concertbookingsystem_sde3;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 public class Seat {
     private final String id;
+    private final String seatNumber;
     private final double price;
-    private final AtomicReference<SeatStatus> state;
+    private boolean isAvailable;
 
-    public Seat(String id, double price) {
+    public Seat(String id, String seatNumber, double price) {
         this.id = id;
+        this.seatNumber = seatNumber;
         this.price = price;
-        this.state = new AtomicReference<>(SeatStatus.AVAILABLE);
+        this.isAvailable = true;
     }
 
     public String getId() { return id; }
+    public String getSeatNumber() { return seatNumber; }
     public double getPrice() { return price; }
-    
-    // Core CAS lock logic!
-    public boolean lockSeat() {
-        return state.compareAndSet(SeatStatus.AVAILABLE, SeatStatus.LOCKED);
-    }
-    
-    public boolean confirmBooking() {
-        return state.compareAndSet(SeatStatus.LOCKED, SeatStatus.BOOKED);
-    }
-    
-    public boolean releaseSeat() {
-        return state.compareAndSet(SeatStatus.LOCKED, SeatStatus.AVAILABLE);
-    }
-    
-    public SeatStatus getStatus() {
-        return state.get();
+    public boolean isAvailable() { return isAvailable; }
+
+    void setAvailable(boolean available) {
+        this.isAvailable = available;
     }
 }

@@ -5,24 +5,45 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Book {
     private final String isbn;
     private final String title;
-    // Lock-free primitive for exact copies
-    private final AtomicBoolean isAvailable;
+    private final String author;
+    private final int publicationYear;
+    
+    // SDE3: Granular intrinsic safety!
+    // Replacing a standard boolean and external synchronization with
+    // a lightweight, ultra-performant Atomic Compare-And-Swap (CAS) mechanic.
+    private final AtomicBoolean available;
 
-    public Book(String isbn, String title) {
+    public Book(String isbn, String title, String author, int publicationYear) {
         this.isbn = isbn;
         this.title = title;
-        this.isAvailable = new AtomicBoolean(true);
+        this.author = author;
+        this.publicationYear = publicationYear;
+        // All new books begin as freely available
+        this.available = new AtomicBoolean(true);
     }
 
     public String getIsbn() { return isbn; }
     public String getTitle() { return title; }
-    public boolean checkAvailability() { return isAvailable.get(); }
+    public String getAuthor() { return author; }
+    public int getPublicationYear() { return publicationYear; }
 
-    public boolean borrowBook() {
-        return isAvailable.compareAndSet(true, false);
+    public boolean isAvailable() {
+        return available.get();
     }
 
-    public boolean returnBook() {
-        return isAvailable.compareAndSet(false, true);
+    /**
+     * SDE3: Solves the fatal TOCTOU (Time-Of-Check to Time-Of-Use) bug.
+     * Atomically flips the status from true to false exactly ONCE.
+     * @return true if this exact thread won the race and secured the book.
+     */
+    public boolean reserve() {
+        return available.compareAndSet(true, false);
+    }
+
+    /**
+     * Atomically returns the book back to circulation.
+     */
+    public void release() {
+        available.set(true);
     }
 }

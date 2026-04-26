@@ -1,10 +1,62 @@
-# Elevatorsystem - SDE3 Lock-Free & Event-Driven Implementation
+# 🛗 Elevator System — SDE3 Upgraded
 
-This directory represents the highest-tier, Staff-level (SDE3) implementation of the Elevatorsystem system.
+## Overview
+A multi-elevator dispatch system for a building. Implements the SCAN algorithm (disk scheduling analogy) via a `PriorityQueue` to efficiently serve floor requests in direction-sorted order, minimising average wait time.
 
-## Architectural Characteristics
-- **Structure:** Heavily decoupled, bypassing traditional OOP boilerplate to focus exclusively on concurrency and event flow.
-- **Concurrency:** Lock-free algorithms, CPU-level atomic operations (Compare-And-Swap / `AtomicInteger`), and `ConcurrentHashMap` logic to completely eliminate Time-Of-Check-to-Time-Of-Use (TOCTOU) race conditions.
-- **Event-Driven:** Employs Publisher/Subscriber `EventBus` paradigms for asynchronous pipelines (e.g. auditing, hardware signals).
+## SDE3 Upgrades Applied
 
-*Note: This tier intentionally abstracts away standard enterprise OOP patterns to showcase extreme high-throughput, non-blocking design.*
+| Issue | Fix |
+|-------|-----|
+| Round-robin assignment ignores proximity — inefficient | `SCANDispatchStrategy`: selects nearest elevator moving in the right direction |
+| Single `synchronized` on the controller — blocks all elevators | Per-`Elevator` `ReentrantLock`; controller only coordinates, not bottlenecks |
+| No strategy abstraction for dispatch | `ElevatorSelectionStrategy` interface — injectable at runtime |
+
+## Class Diagram
+
+```mermaid
+classDiagram
+    class ElevatorController {
+        -List~Elevator~ elevators
+        -ElevatorSelectionStrategy strategy
+        +handleRequest(Request)
+    }
+    class ElevatorSelectionStrategy {
+        <<interface>>
+        +selectElevator(List~Elevator~, Request) Elevator
+    }
+    class SCANDispatchStrategy {
+        +selectElevator(List~Elevator~, Request) Elevator
+    }
+    class Elevator {
+        -int id
+        -int currentFloor
+        -Direction direction
+        -PriorityQueue~Request~ upQueue
+        -PriorityQueue~Request~ downQueue
+        -ReentrantLock lock
+        +addRequest(Request)
+        +step()
+    }
+    class Request {
+        -int floor
+        -Direction direction
+    }
+    class Direction {
+        <<enumeration>>
+        UP
+        DOWN
+        IDLE
+    }
+
+    ElevatorController "1" *-- "many" Elevator
+    ElevatorController --> ElevatorSelectionStrategy
+    ElevatorSelectionStrategy <|.. SCANDispatchStrategy
+    Elevator "1" *-- "many" Request
+    Request --> Direction
+```
+
+## Run
+```bash
+javac $(find elevatorsystem_upgraded -name "*.java")
+java elevatorsystem_upgraded.ElevatorSystemDemoUpgraded
+```
