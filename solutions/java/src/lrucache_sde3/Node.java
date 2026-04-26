@@ -1,6 +1,6 @@
 package lrucache_sde3;
 
-public class Node<K, V> {
+class Node<K, V> {
     K key;
     V value;
     Node<K, V> prev;

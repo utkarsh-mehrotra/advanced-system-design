@@ -1,34 +1,37 @@
 package tictactoe_sde3;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class GameController {
-    private final BoardCell[][] grid = new BoardCell[3][3];
-    // CAS safe pointer for active turn prevents concurrent cross-turns
-    private final AtomicReference<Character> currentTurn = new AtomicReference<>('X');
+    private final Board board = new Board();
+    private final Player p1;
+    private final Player p2;
+    private Player currentTurn;
+    
+    private final ReentrantLock lock = new ReentrantLock();
 
-    public GameController() {
-        for(int i=0; i<3; i++) for(int j=0; j<3; j++) grid[i][j] = new BoardCell();
+    public GameController(Player p1, Player p2) {
+        this.p1 = p1;
+        this.p2 = p2;
+        this.currentTurn = p1;
     }
 
-    public void playTurn(char playerPiece, int r, int c) {
-        if (r < 0 || r > 2 || c < 0 || c > 2) return;
-
-        char activePiece = currentTurn.get();
-        if (activePiece != playerPiece) {
-            System.out.println("It's not " + playerPiece + "'s turn!");
-            return;
-        }
-
-        BoardCell cell = grid[r][c];
-        if (cell.claimCell(playerPiece)) {
-            char nextTurn = (playerPiece == 'X') ? 'O' : 'X';
-            currentTurn.set(nextTurn); // Uncontested write
-            
-            // Async Event bus for decoupling UI and spectators from exact logic latency
-            EventBus.getInstance().publish("BOARD_UPDATED", "Player " + playerPiece + " placed on [" + r + "," + c + "]");
-        } else {
-            System.out.println("SDE3 Cell already occupied!");
+    public void playTurn(Player player, int r, int c) {
+        lock.lock();
+        try {
+            if (player != currentTurn) {
+                System.out.println("It's not " + player.getId() + "'s turn!");
+                return;
+            }
+            if (board.placePiece(r, c, player.getPiece())) {
+                System.out.println("SDE2: Move registered.");
+                board.printBoard();
+                currentTurn = (currentTurn == p1) ? p2 : p1;
+            } else {
+                System.out.println("SDE2: Invalid move.");
+            }
+        } finally {
+            lock.unlock();
         }
     }
 }

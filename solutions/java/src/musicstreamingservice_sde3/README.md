@@ -1,10 +1,46 @@
-# Musicstreamingservice - SDE3 Lock-Free & Event-Driven Implementation
+# 🎵 Music Streaming Service — SDE3 Upgraded
 
-This directory represents the highest-tier, Staff-level (SDE3) implementation of the Musicstreamingservice system.
+## Overview
+A Spotify-like audio streaming backend managing massive music libraries, user playlists, and actual music playback capabilities. The focus is cleanly managing long-running playback state engines.
 
-## Architectural Characteristics
-- **Structure:** Heavily decoupled, bypassing traditional OOP boilerplate to focus exclusively on concurrency and event flow.
-- **Concurrency:** Lock-free algorithms, CPU-level atomic operations (Compare-And-Swap / `AtomicInteger`), and `ConcurrentHashMap` logic to completely eliminate Time-Of-Check-to-Time-Of-Use (TOCTOU) race conditions.
-- **Event-Driven:** Employs Publisher/Subscriber `EventBus` paradigms for asynchronous pipelines (e.g. auditing, hardware signals).
+## SDE3 Upgrades Applied
 
-*Note: This tier intentionally abstracts away standard enterprise OOP patterns to showcase extreme high-throughput, non-blocking design.*
+| Issue | Fix |
+|-------|-----|
+| Raw `new Thread(() -> play()).start()` causing rogue execution leaks | Instantiated a dedicated `ExecutorService` backing the `MusicPlayer`, returning `Future<?>` tokens to explicitly manage execution lifecycles. |
+| Busy-Spinning or Thread Death on Pause | Utilized `AtomicBoolean` switches (`isPlaying`, `isStopped`) allowing clean pausing, resuming, and seeking without terminating the core executor queue. |
+| Massive catalog string searching | Catalog inverted to `parallelStream` filtering for instantaneous O(N/cores) performance over titles, albums, and artists simultaneously. |
+
+## Class Diagram
+
+```mermaid
+classDiagram
+    class MusicStreamingFacade {
+        -MusicLibrary library
+        -MusicPlayer player
+        +searchMusic(query)
+        +getMusicPlayer()
+    }
+    class MusicPlayer {
+        -ExecutorService executorService
+        -AtomicBoolean isPlaying
+        -AtomicBoolean isStopped
+        -Future~?~ playbackFuture
+        +playSong(Song)
+        +pauseSong()
+        +seekTo(int)
+    }
+    class MusicLibrary {
+        -ConcurrentHashMap~String, Song~ songs
+        +searchSongs(query) List~Song~
+    }
+
+    MusicStreamingFacade --> MusicLibrary
+    MusicStreamingFacade --> MusicPlayer
+```
+
+## Run
+```bash
+javac $(find musicstreamingservice_upgraded -name "*.java")
+java musicstreamingservice_upgraded.MusicStreamingServiceDemoUpgraded
+```

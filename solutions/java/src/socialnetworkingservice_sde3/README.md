@@ -1,23 +1,58 @@
-# 👥 Social Networking Service — SDE3 Redesign
+# 👥 Social Networking Service — SDE3 Upgraded
 
-The legacy single-node implementation struggled with the **Celebrity Fan-Out Problem** where writing a post required iterating over millions of followers' lists in memory, creating catastrophic `ConcurrentModificationException` and OutOfMemory errors.
+## Overview
+A Facebook/Instagram-style social platform with user connections, post creation, newsfeed generation, and likes/comments. The SDE3 upgrade replaces the catastrophically slow O(N×M) pull-model feed with a Fan-Out-On-Write push architecture.
 
-This project implements an SDE3 Distributed Systems approach utilizing the **Hybrid Push/Pull Architecture**.
+## SDE3 Upgrades Applied
 
-## Architecture & Data Flow
+| Issue | Fix |
+|-------|-----|
+| `getNewsfeed()` traverses every friend's post list at read time — O(N×M) | `NewsfeedService` fans post IDs into each friend's pre-computed `newsfeedPostIds` list asynchronously — O(1) feed reads |
+| `ArrayList<String> likes` throws `ConcurrentModificationException` under viral load | `CopyOnWriteArrayList` for likes, comments, and friend lists |
+| Monolithic service | Split into `SocialNetworkingFacade`, `NewsfeedService`, `NotificationService` |
 
-1. **Gateways and Microservices:** `SocialGraphService`, `PostService`, `NewsfeedService`.
-2. **Message Broker (Kafka):** Every created post triggers a `PostCreatedEvent` on the bus. This allows the API to return HTTP 200 immediately (No blocking on timeline generation!).
-3. **Fan-Out Worker:** An async consumer listens to the `PostCreatedEvent`.
-   - **For Normal Users:** Executes `Fan-Out-On-Write`. It pushes the Post ID directly to their followers' materialized `RedisCache` lists.
-   - **For Celebrities:** Ignores the event (Drops it).
-4. **Hybrid Merging on Read:** When a user opens their app, the `NewsfeedService` executes:
-   - **O(1)** fetch of their pre-calculated `RedisCache` timeline.
-   - **Pull-On-Demand** fetch from the `PostRepository` for the celebrities they follow.
-   - Aggregates and sorts them instantly.
+## Class Diagram
 
-## Run the Demo
+```mermaid
+classDiagram
+    class SocialNetworkingFacade {
+        -Map~String,User~ users
+        -Map~String,Post~ posts
+        -NewsfeedService newsfeedService
+        -NotificationService notificationService
+        +addFriend(userIdA, userIdB)
+        +createPost(userId, content) Post
+        +getNewsfeed(userId) List~Post~
+        +likePost(userId, postId)
+    }
+    class NewsfeedService {
+        -ExecutorService fanOutPool
+        +pushPostToFollowersTimeline(authorId, postId)
+    }
+    class NotificationService {
+        -ExecutorService dispatchPool
+        +dispatchNotification(userId, type, message)
+    }
+    class User {
+        -String id
+        -CopyOnWriteArrayList~String~ friendIds
+        -CopyOnWriteArrayList~String~ newsfeedPostIds
+    }
+    class Post {
+        -String id
+        -CopyOnWriteArrayList~String~ likes
+        -CopyOnWriteArrayList~Comment~ comments
+    }
+
+    SocialNetworkingFacade --> NewsfeedService
+    SocialNetworkingFacade --> NotificationService
+    SocialNetworkingFacade "1" *-- "many" User
+    SocialNetworkingFacade "1" *-- "many" Post
+    User ..> Post : newsfeed references
+```
+
+## Run
 ```bash
-javac $(find . -name "*.java")
-java socialnetworkingservice_sde3.SDE3SocialNetworkingDemo
+javac $(find socialnetworkingservice_upgraded -name "*.java")
+java socialnetworkingservice_upgraded.SocialNetworkingDemoUpgraded
 ```

@@ -1,10 +1,64 @@
-# Restaurantmanagementsystem - SDE3 Lock-Free & Event-Driven Implementation
+# 🍽️ Restaurant Management System — SDE3 Upgraded
 
-This directory represents the highest-tier, Staff-level (SDE3) implementation of the Restaurantmanagementsystem system.
+## Overview
+A restaurant operations system managing table reservations, order placement, and kitchen notifications. The SDE3 upgrade introduces an async `EventDispatcher` to decouple kitchen/staff pings from the main order flow, and a `TableAllocationStrategy` for optimal seat assignment.
 
-## Architectural Characteristics
-- **Structure:** Heavily decoupled, bypassing traditional OOP boilerplate to focus exclusively on concurrency and event flow.
-- **Concurrency:** Lock-free algorithms, CPU-level atomic operations (Compare-And-Swap / `AtomicInteger`), and `ConcurrentHashMap` logic to completely eliminate Time-Of-Check-to-Time-Of-Use (TOCTOU) race conditions.
-- **Event-Driven:** Employs Publisher/Subscriber `EventBus` paradigms for asynchronous pipelines (e.g. auditing, hardware signals).
+## SDE3 Upgrades Applied
 
-*Note: This tier intentionally abstracts away standard enterprise OOP patterns to showcase extreme high-throughput, non-blocking design.*
+| Issue | Fix |
+|-------|-----|
+| Kitchen notification called inline — blocks the response to the waiter | `EventDispatcher` backed by `ExecutorService` — fires asynchronously |
+| First available table assigned regardless of fit | `TableAllocationStrategy`: selects tightest-fit capacity to reduce waste |
+| Table state flipped without a lock — two reservations can claim the same table | Per-`Table` `ReentrantLock` inside allocation strategy |
+
+## Class Diagram
+
+```mermaid
+classDiagram
+    class Restaurant {
+        -List~Table~ tables
+        -List~Order~ orders
+        -TableAllocationStrategy allocationStrategy
+        -EventDispatcher eventDispatcher
+        +reserveTable(Reservation) Table
+        +placeOrder(tableId, List~MenuItem~) Order
+        +completeOrder(orderId)
+    }
+    class TableAllocationStrategy {
+        +findBestTable(List~Table~, partySize) Table
+    }
+    class Table {
+        -int capacity
+        -TableStatus status
+        -ReentrantLock lock
+        +tryOccupy() boolean
+        +vacate()
+    }
+    class EventDispatcher {
+        -ExecutorService pool
+        +dispatchKitchenEvent(Order)
+        +dispatchStaffEvent(String)
+    }
+    class Order {
+        -String id
+        -List~MenuItem~ items
+        -BigDecimal totalAmount
+        -OrderStatus status
+    }
+    class MenuItem {
+        -String name
+        -BigDecimal price
+    }
+
+    Restaurant --> TableAllocationStrategy
+    Restaurant --> EventDispatcher
+    Restaurant "1" *-- "many" Table
+    Restaurant "1" *-- "many" Order
+    Order "1" *-- "many" MenuItem
+```
+
+## Run
+```bash
+javac $(find restaurantmanagementsystem_upgraded -name "*.java")
+java restaurantmanagementsystem_upgraded.RestaurantManagementDemoUpgraded
+```

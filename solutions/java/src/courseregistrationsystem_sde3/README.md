@@ -1,10 +1,48 @@
-# Courseregistrationsystem - SDE3 Lock-Free & Event-Driven Implementation
+# 🎓 University Course Registration System — SDE3 Upgraded
 
-This directory represents the highest-tier, Staff-level (SDE3) implementation of the Courseregistrationsystem system.
+## Overview
+A university course enrollment system where students search for classes and register before capacity runs out. The core challenge is dealing with the "flash rush" (thousands of students hitting registration simultaneously) without resorting to a catastrophic global lock.
 
-## Architectural Characteristics
-- **Structure:** Heavily decoupled, bypassing traditional OOP boilerplate to focus exclusively on concurrency and event flow.
-- **Concurrency:** Lock-free algorithms, CPU-level atomic operations (Compare-And-Swap / `AtomicInteger`), and `ConcurrentHashMap` logic to completely eliminate Time-Of-Check-to-Time-Of-Use (TOCTOU) race conditions.
-- **Event-Driven:** Employs Publisher/Subscriber `EventBus` paradigms for asynchronous pipelines (e.g. auditing, hardware signals).
+## SDE3 Upgrades Applied
 
-*Note: This tier intentionally abstracts away standard enterprise OOP patterns to showcase extreme high-throughput, non-blocking design.*
+| Issue | Fix |
+|-------|-----|
+| Global `synchronized registerCourse(student, course)` blocks everyone | Sharded concurrency: Added an explicit `ReentrantLock` directly into the `Course` POJO. Registration is fully concurrent across different courses. |
+| TOCTOU Race Condition on capacity checking | Inside `Course.tryRegisterStudent()`, the lock bridges the capacity check (`current < maxCapacity`) and atomic increment (`enrolledStudents.incrementAndGet()`). |
+| Linear O(N) sequence for `searchCourses` | Migrated to `courses.values().parallelStream().filter(...)` utilizing multi-core indexing for vast course catalogs. |
+| Synchronous UI Notification on Registration | Dispatched `NotificationService` to a background `ExecutorService` thread pool, generating asynchronous email/event triggers. |
+
+## Class Diagram
+
+```mermaid
+classDiagram
+    class CourseRegistrationFacade {
+        -Map~String, Course~ courses
+        -NotificationService notificationService
+        +registerCourse(Student, Course) boolean
+        +searchCourses(query) List~Course~
+    }
+    class Course {
+        -AtomicInteger enrolledStudents
+        -ReentrantLock courseLock
+        +tryRegisterStudent() boolean
+    }
+    class Student {
+        -CopyOnWriteArrayList~Course~ registeredCourses
+    }
+    class NotificationService {
+        -ExecutorService asyncPool
+        +notifyStudentOfRegistration(...)
+    }
+
+    CourseRegistrationFacade --> Course
+    CourseRegistrationFacade --> Student
+    CourseRegistrationFacade --> NotificationService
+    CourseRegistrationFacade ..> Registration
+```
+
+## Run
+```bash
+javac $(find courseregistrationsystem_upgraded -name "*.java")
+java courseregistrationsystem_upgraded.CourseRegistrationDemoUpgraded
+```

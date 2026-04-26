@@ -1,22 +1,39 @@
 package ridesharingservice_sde3;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+/**
+ * SDE3: Asynchronous proximity-based driver notification dispatcher.
+ * Prevents the request thread from blocking on O(N) distance sweeps.
+ */
 public class RideDispatcher {
-    private final Map<String, Ride> rides = new ConcurrentHashMap<>();
+    private static final double PROXIMITY_RADIUS_KM = 5.0;
+    private final ExecutorService dispatchPool;
 
-    public void requestRide(Ride ride) {
-        rides.put(ride.getRideId(), ride);
-        EventBus.getInstance().publish("RIDE_REQUESTED", ride.getRideId());
+    public RideDispatcher() {
+        this.dispatchPool = Executors.newFixedThreadPool(8);
     }
 
-    public void updateRideState(String rideId, RideStatus expected, RideStatus next) {
-        Ride r = rides.get(rideId);
-        if (r != null) {
-            if (!r.transitionStatus(expected, next)) {
-                System.out.println("RideDispatcher: State transition denied for " + rideId + " (Likely stale cache)");
+    /**
+     * Asynchronously broadcasts a ride request to nearby available drivers.
+     */
+    public void broadcastToNearbyDrivers(Ride ride, List<Driver> allDrivers) {
+        dispatchPool.submit(() -> {
+            for (Driver driver : allDrivers) {
+                if (driver.isAvailable()) {
+                    double distanceKm = driver.getLocation().distanceTo(ride.getSource());
+                    if (distanceKm <= PROXIMITY_RADIUS_KM) {
+                        System.out.printf("[RideDispatcher]: Notifying driver %s (%.2f km away) about Ride %s%n",
+                                driver.getName(), distanceKm, ride.getId());
+                    }
+                }
             }
-        }
+        });
+    }
+
+    public void shutdown() {
+        dispatchPool.shutdown();
     }
 }

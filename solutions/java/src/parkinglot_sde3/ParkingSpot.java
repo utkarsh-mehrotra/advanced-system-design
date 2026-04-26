@@ -1,25 +1,58 @@
 package parkinglot_sde3;
 
+import parkinglot_sde3.vehicletype.VehicleType;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ParkingSpot {
-    private final String spotId;
-    private final AtomicBoolean isOccupied;
+    private final int spotNumber;
+    private final VehicleType vehicleType;
+    private String parkedLicensePlate; // No need to store whole Vehicle logic entity if parked
 
-    public ParkingSpot(String spotId) {
-        this.spotId = spotId;
-        this.isOccupied = new AtomicBoolean(false);
+    // SDE2+: Using AtomicBoolean for lock-free thread safety
+    private final AtomicBoolean isAvailable;
+
+    public ParkingSpot(int spotNumber, VehicleType vehicleType) {
+        this.spotNumber = spotNumber;
+        this.vehicleType = vehicleType;
+        this.isAvailable = new AtomicBoolean(true);
     }
 
-    public String getSpotId() { return spotId; }
-    public boolean checkOccupied() { return isOccupied.get(); }
-
-    public boolean parkVehicle() {
-        return isOccupied.compareAndSet(false, true);
+    /**
+     * Attempts to park atomically.
+     * @param licensePlate plate of the vehicle
+     * @return true if successful reservation, false if already occupied
+     */
+    public boolean park(String licensePlate) {
+        // Atomic compare-and-swap from true to false
+        if (isAvailable.compareAndSet(true, false)) {
+            this.parkedLicensePlate = licensePlate;
+            return true;
+        }
+        return false;
     }
 
-    public void vacate() {
-        isOccupied.set(false);
-        EventBus.getInstance().publish("SPOT_VACATED", spotId);
+    /**
+     * Atomic release
+     */
+    public void unpark() {
+        this.parkedLicensePlate = null;
+        isAvailable.set(true); // Release the spot atomically
+    }
+
+    public boolean isAvailable() {
+        return isAvailable.get();
+    }
+
+    public VehicleType getVehicleType() {
+        return vehicleType;
+    }
+
+    public int getSpotNumber() {
+        return spotNumber;
+    }
+
+    public String getParkedLicensePlate() {
+        return parkedLicensePlate;
     }
 }

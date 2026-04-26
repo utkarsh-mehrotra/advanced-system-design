@@ -1,28 +1,37 @@
 package elevatorsystem_sde3;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import elevatorsystem_sde3.strategy.ElevatorSelectionStrategy;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ElevatorController {
-    private final Map<String, Elevator> elevators = new ConcurrentHashMap<>();
+    private final List<Elevator> elevators;
+    private final ElevatorSelectionStrategy selectionStrategy;
 
-    public ElevatorController() {
-        // Asynchronously listen to physical sensor trips
-        EventBus.getInstance().subscribe("ELEVATOR_REACHED_FLOOR", this::handleFloorReached);
-    }
-
-    public void registerElevator(Elevator elevator) {
-        elevators.put(elevator.getId(), elevator);
+    public ElevatorController(int numElevators, int capacity, ElevatorSelectionStrategy strategy) {
+        this.selectionStrategy = strategy;
+        this.elevators = new ArrayList<>();
+        
+        for (int i = 0; i < numElevators; i++) {
+            Elevator elevator = new Elevator(i + 1, capacity);
+            elevators.add(elevator);
+            // SDE3: Good practice to keep thread references if we ever needed graceful shutdown, but this is fine for demo
+            new Thread(elevator, "ElevatorThread-" + (i + 1)).start();
+        }
     }
 
     public void requestElevator(int sourceFloor, int destinationFloor) {
-        System.out.println("ElevatorController: Computing optimal assignment...");
-        Elevator chosen = elevators.values().iterator().next(); // simplified 
-        chosen.dispatch(Direction.UP);
-    }
-
-    private void handleFloorReached(Object payload) {
-        String data = (String) payload;
-        System.out.println("ElevatorController [Async Sensor]: " + data + ". Processing stop checks.");
+        Request request = new Request(sourceFloor, destinationFloor);
+        
+        // SDE3: Utilizing the decoupled strategy pattern instance!
+        Elevator optimalElevator = selectionStrategy.selectElevator(elevators, request);
+        
+        if (optimalElevator != null) {
+            System.out.println("[Controller] Assigned passenger request (" + sourceFloor + " -> " + destinationFloor + ") to Elevator " + optimalElevator.getCurrentFloor() + " (moving " + optimalElevator.getCurrentDirection() + ")");
+            optimalElevator.addRequest(request);
+        } else {
+            System.out.println("[Controller] System overloaded, no elevators available.");
+        }
     }
 }

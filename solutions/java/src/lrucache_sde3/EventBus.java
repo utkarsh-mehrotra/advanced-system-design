@@ -1,30 +1,29 @@
 package lrucache_sde3;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
 
 public class EventBus {
-    private final Map<String, List<Consumer<Object>>> listeners = new ConcurrentHashMap<>();
+    private static final EventBus INSTANCE = new EventBus();
+    private final Map<String, List<Runnable>> listeners = new ConcurrentHashMap<>();
 
-    private static class Holder {
-        private static final EventBus INSTANCE = new EventBus();
-    }
+    private EventBus() {}
 
     public static EventBus getInstance() {
-        return Holder.INSTANCE;
+        return INSTANCE;
     }
 
-    public void subscribe(String topic, Consumer<Object> listener) {
-        listeners.computeIfAbsent(topic, k -> new CopyOnWriteArrayList<>()).add(listener);
+    public void subscribe(String eventType, Runnable action) {
+        listeners.computeIfAbsent(eventType, k -> new ArrayList<>()).add(action);
     }
 
-    public void publish(String topic, Object payload) {
-        List<Consumer<Object>> topicListeners = listeners.get(topic);
-        if (topicListeners != null) {
-            topicListeners.forEach(listener -> listener.accept(payload));
+    public void publish(String eventType, Object payload) {
+        List<Runnable> actions = listeners.get(eventType);
+        if (actions != null) {
+            System.out.println("[EventBus] Async Dispatch -> " + eventType + " | Payload: " + payload);
+            actions.forEach(Runnable::run);
         }
     }
 }

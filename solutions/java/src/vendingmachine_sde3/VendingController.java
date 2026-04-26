@@ -5,40 +5,79 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class VendingController {
-    private final Map<String, Slot> grid = new ConcurrentHashMap<>();
-    private final AtomicReference<MachineState> activeState = new AtomicReference<>(MachineState.IDLE);
-    private volatile double currentBalance = 0.0; // Volatile for thread safe primitive reading
+    private final Map<String, Product> inventory = new ConcurrentHashMap<>();
+    private final AtomicReference<VendingMachineState> activeState = new AtomicReference<>(new IdleState());
+    
+    // Thread-safe accumulators
+    private volatile double currentBalance = 0.0; 
 
-    public void loadSlot(Slot s) {
-        grid.put(s.getId(), s);
+    public void addProduct(String slotId, Product product) {
+        inventory.put(slotId, product);
     }
 
-    public void insertCoin(double coin) {
-        if (activeState.compareAndSet(MachineState.IDLE, MachineState.COIN_INSERTED) || 
-            activeState.get() == MachineState.COIN_INSERTED) {
-            
-            this.currentBalance += coin;
-            System.out.println("VendingTracker: Inserted $" + coin + ". Balance is $" + currentBalance);
+    public void insertCoin(Coin coin) {
+        while (true) {
+            VendingMachineState current = activeState.get();
+            VendingMachineState next = current.insertCoin(this, coin);
+            if (activeState.compareAndSet(current, next)) {
+                this.currentBalance += coin.getValue();
+                EventBus.getInstance().publish("COIN_INSERTED", coin.getValue());
+                break;
+            }
         }
     }
 
     public void selectProduct(String slotId) {
-        if (activeState.get() != MachineState.COIN_INSERTED) return;
+        Product p = inventory.get(slotId);
+        if (p == null) return;
 
-        Slot s = grid.get(slotId);
-        if (s != null && currentBalance >= s.getPrice()) {
-            if (activeState.compareAndSet(MachineState.COIN_INSERTED, MachineState.DISPENSING)) {
-                if (s.pushInventoryOut()) {
-                    currentBalance -= s.getPrice();
-                    EventBus.getInstance().publish("TRIGGER_MOTOR", slotId);
-                    
-                    // Reset
-                    activeState.set(MachineState.IDLE);
-                } else {
-                    System.out.println("VendingTracker: Out of stock! Refunding..." + currentBalance);
-                    activeState.set(MachineState.IDLE);
+        while (true) {
+            VendingMachineState current = activeState.get();
+            VendingMachineState next = current.selectProduct(this, p);
+            
+            if (activeState.compareAndSet(current, next)) {
+                if (next instanceof DispenseState) {
+                    processDispenseAndChange(p);
                 }
+                break;
             }
         }
     }
+    
+    private void processDispenseAndChange(Product p) {
+        // Asynchronous/Decoupled hardware triggers
+        this.currentBalance -= p.getPrice();
+        EventBus.getInstance().publish("TRIGGER_MOTOR_DISPENSE", p.getName());
+        
+        // Lock-free shift to return change state
+        while (true) {
+            VendingMachineState current = activeState.get();
+            VendingMachineState next = current.dispenseProduct(this);
+            if (activeState.compareAndSet(current, next)) {
+                if (this.currentBalance > 0) {
+                    EventBus.getInstance().publish("RETURN_CHANGE", this.currentBalance);
+                    this.currentBalance = 0.0;
+                }
+                
+                // Finally, return to idle
+                while (true) {
+                    VendingMachineState changeState = activeState.get();
+                    VendingMachineState idle = changeState.returnChange(this);
+                    if (activeState.compareAndSet(changeState, idle)) {
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    public void addFunds(double amount) {
+        this.currentBalance += amount;
+    }
+
+    public boolean hasSufficientFunds(Product product) {
+        return this.currentBalance >= product.getPrice();
+    }
 }
+

@@ -2,15 +2,25 @@ package vendingmachine_sde3;
 
 public class VendingDemoSDE3 {
     public static void main(String[] args) {
-        new HardwareDispenser(); // Boot detached motor listener
+        System.out.println("--- Booting Vending Machine SDE3 (Lock-Free Event-Driven) ---");
 
         VendingController controller = new VendingController();
-        controller.loadSlot(new Slot("A1", 1.50, 5));
+        controller.addProduct("A1", new Product("Soda", 1.50));
 
-        System.out.println("User drops a quarter and a 2 dollar bill...");
-        controller.insertCoin(2.25);
+        // Testing the lock-free CAS insert -> select -> dispense cycle
+        controller.insertCoin(Coin.QUARTER);
+        controller.insertCoin(Coin.QUARTER);
+        controller.insertCoin(Coin.QUARTER);
+        controller.insertCoin(Coin.QUARTER);
+        controller.insertCoin(Coin.QUARTER); // Total 1.25
         
-        System.out.println("User pushes A1...");
+        // This will be rejected silently or via state, requiring more money
+        controller.selectProduct("A1");
+        
+        // Add last quarter
+        controller.insertCoin(Coin.QUARTER); // Total 1.50
+        
+        // Should succeed and trigger async motor/change events
         controller.selectProduct("A1");
     }
 }

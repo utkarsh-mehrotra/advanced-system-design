@@ -1,10 +1,61 @@
-# Splitwise - SDE3 Lock-Free & Event-Driven Implementation
+# 💸 Splitwise — SDE3 Upgraded
 
-This directory represents the highest-tier, Staff-level (SDE3) implementation of the Splitwise system.
+## Overview
+A multi-party expense splitting system supporting equal, exact, and percentage splits. Models Splitwise's core debt settlement engine with deadlock-safe concurrent balance updates.
 
-## Architectural Characteristics
-- **Structure:** Heavily decoupled, bypassing traditional OOP boilerplate to focus exclusively on concurrency and event flow.
-- **Concurrency:** Lock-free algorithms, CPU-level atomic operations (Compare-And-Swap / `AtomicInteger`), and `ConcurrentHashMap` logic to completely eliminate Time-Of-Check-to-Time-Of-Use (TOCTOU) race conditions.
-- **Event-Driven:** Employs Publisher/Subscriber `EventBus` paradigms for asynchronous pipelines (e.g. auditing, hardware signals).
+## SDE3 Upgrades Applied
 
-*Note: This tier intentionally abstracts away standard enterprise OOP patterns to showcase extreme high-throughput, non-blocking design.*
+| Issue | Fix |
+|-------|-----|
+| Unguarded balance modifications — concurrent updates corrupt totals | Lexicographic `ReentrantLock` ordering on two-user pairs eliminates circular deadlocks |
+| Hardcoded equal split only | `ExpenseSplitter` Strategy interface with `EqualExpenseSplitter`, `ExactExpenseSplitter`, `PercentExpenseSplitter` |
+| Raw `double` balances | `BigDecimal` with `RoundingMode.HALF_UP` throughout |
+
+## Class Diagram
+
+```mermaid
+classDiagram
+    class SplitwiseService {
+        -Map~String,User~ users
+        -BalanceManager balanceManager
+        +addExpense(Expense, ExpenseSplitter)
+        +settleDebt(String payerId, String payeeId, BigDecimal)
+    }
+    class BalanceManager {
+        -ConcurrentHashMap balances
+        -ReentrantLock lockA, lockB
+        +debit(userId, amount)
+        +credit(userId, amount)
+        +getBalance(userId) BigDecimal
+    }
+    class Expense {
+        -String id
+        -User paidBy
+        -BigDecimal amount
+        -List~User~ participants
+    }
+    class ExpenseSplitter {
+        <<interface>>
+        +split(Expense) Map~User,BigDecimal~
+    }
+    class EqualExpenseSplitter
+    class ExactExpenseSplitter
+    class PercentExpenseSplitter
+    class Split {
+        -User user
+        -BigDecimal amount
+    }
+
+    SplitwiseService --> BalanceManager
+    SplitwiseService --> ExpenseSplitter
+    ExpenseSplitter <|.. EqualExpenseSplitter
+    ExpenseSplitter <|.. ExactExpenseSplitter
+    ExpenseSplitter <|.. PercentExpenseSplitter
+    Expense "1" *-- "many" Split
+```
+
+## Run
+```bash
+javac $(find splitwise_upgraded -name "*.java")
+java splitwise_upgraded.SplitwiseDemoUpgraded
+```

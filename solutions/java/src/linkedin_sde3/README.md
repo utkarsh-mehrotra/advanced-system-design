@@ -1,10 +1,10 @@
-# Linkedin - SDE3 Lock-Free & Event-Driven Implementation
+# Linkedin - SDE2 Advanced Implementation
 
-This directory represents the highest-tier, Staff-level (SDE3) implementation of the Linkedin system.
+This directory contains the SDE2 (Senior) level implementation of the Linkedin system.
 
 ## Architectural Characteristics
-- **Structure:** Heavily decoupled, bypassing traditional OOP boilerplate to focus exclusively on concurrency and event flow.
-- **Concurrency:** Lock-free algorithms, CPU-level atomic operations (Compare-And-Swap / `AtomicInteger`), and `ConcurrentHashMap` logic to completely eliminate Time-Of-Check-to-Time-Of-Use (TOCTOU) race conditions.
-- **Event-Driven:** Employs Publisher/Subscriber `EventBus` paradigms for asynchronous pipelines (e.g. auditing, hardware signals).
+- **Structure:** Follows strict Object-Oriented Design principles and leverages Gang of Four (GoF) design patterns (e.g., Strategy, State, Facade) to decouple business logic.
+- **Concurrency:** Implements robust transactional structures such as the Two-Phase Commit / SAGA patterns where applicable, and utilizes localized locking mechanisms over broad synchronized methods.
+- **Data Types:** Upgrades primitive data types to precision types like `BigDecimal` and `UUID`s for robust, enterprise-scale data modeling.
 
-*Note: This tier intentionally abstracts away standard enterprise OOP patterns to showcase extreme high-throughput, non-blocking design.*
+*For the basic MVP, see the root (unsuffixed) directory. For lock-free and event-driven Staff-level logic, see the `_sde3` directory.*
